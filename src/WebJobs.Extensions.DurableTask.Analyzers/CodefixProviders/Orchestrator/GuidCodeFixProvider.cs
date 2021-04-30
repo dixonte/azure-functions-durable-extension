@@ -43,7 +43,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask.Analyzers
                 return;
             }
 
-            if (SyntaxNodeUtils.IsInsideOrchestrationTrigger(expression))
+            if (SyntaxNodeUtils.IsInsideOrchestrator(expression))
             {
                 if (CodeFixProviderUtils.TryGetDurableOrchestrationContextVariableName(expression, out string variableName))
                 {

@@ -54,8 +54,6 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask
 
         internal List<RequestMessage> OperationBatch => this.operationBatch;
 
-        internal int BatchPosition { get; private set; }
-
         public bool RollbackFailedOperations => this.context.Config.Options.RollbackEntityOperationsOnExceptions;
 
         public void AddOperationToBatch(RequestMessage operationMessage)
@@ -272,9 +270,8 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask
             else
             {
                 // call the function once per operation in the batch
-                for (this.BatchPosition = 0; this.BatchPosition < this.operationBatch.Count; this.BatchPosition++)
+                foreach (var request in this.operationBatch)
                 {
-                    var request = this.operationBatch[this.BatchPosition];
                     await this.ProcessOperationRequestAsync(request);
                 }
             }

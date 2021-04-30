@@ -5,7 +5,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.Serialization;
-using Microsoft.Extensions.Logging;
 using Microsoft.WindowsAzure.Storage;
 
 namespace Microsoft.Azure.WebJobs.Extensions.DurableTask
@@ -196,7 +195,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask
         /// <summary>
         /// Throws an exception if any of the settings of the storage provider are invalid.
         /// </summary>
-        public void Validate(ILogger logger)
+        public void Validate()
         {
             if (this.ControlQueueBatchSize <= 0)
             {
@@ -222,11 +221,6 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask
             if (this.ControlQueueBufferThreshold < 1 || this.ControlQueueBufferThreshold > 1000)
             {
                 throw new InvalidOperationException($"{nameof(this.ControlQueueBufferThreshold)} must be between 1 and 1000.");
-            }
-
-            if (this.ControlQueueBatchSize > this.ControlQueueBufferThreshold)
-            {
-                logger.LogWarning($"{nameof(this.ControlQueueBatchSize)} cannot be larger than {nameof(this.ControlQueueBufferThreshold)}. Please adjust these values in your `host.json` settings for predictable performance");
             }
         }
     }

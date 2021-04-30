@@ -82,7 +82,8 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask
         Task SignalEntityAsync<TEntityInterface>(EntityId entityId, DateTime scheduledTimeUtc, Action<TEntityInterface> operation);
 
         /// <summary>
-        /// Tries to read the current state of an entity. Returns default(<typeparamref name="T"/>) if the entity does not exist.
+        /// Tries to read the current state of an entity. Returns default(<typeparamref name="T"/>) if the entity does not
+        /// exist, or if the JSON-serialized state of the entity is larger than 16KB.
         /// </summary>
         /// <typeparam name="T">The JSON-serializable type of the entity.</typeparam>
         /// <param name="entityId">The target entity.</param>

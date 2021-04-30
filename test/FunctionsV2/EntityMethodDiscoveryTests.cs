@@ -1,6 +1,8 @@
 ﻿// Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the MIT License. See LICENSE in the project root for license information.
 
+using Microsoft.Azure.WebJobs.Extensions.DurableTask;
+using Microsoft.Azure.WebJobs.Extensions.DurableTask.Tests;
 using Moq;
 using Xunit;
 
@@ -20,7 +22,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask.Tests.V2
             var context = new Mock<IDurableEntityContext>();
             context.Setup(ctx => ctx.OperationName).Returns("Method");
 
-            var method = DurableEntityContext.FindMethodForContext<ClassWithoutInterface>(context.Object);
+            var method = TypedInvocationExtensions.FindMethodForContext<ClassWithoutInterface>(context.Object);
 
             Assert.NotNull(method);
         }
@@ -32,7 +34,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask.Tests.V2
             var context = new Mock<IDurableEntityContext>();
             context.Setup(ctx => ctx.OperationName).Returns("NonExistingMethod");
 
-            var method = DurableEntityContext.FindMethodForContext<ClassWithoutInterface>(context.Object);
+            var method = TypedInvocationExtensions.FindMethodForContext<ClassWithoutInterface>(context.Object);
 
             Assert.Null(method);
         }
@@ -44,7 +46,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask.Tests.V2
             var context = new Mock<IDurableEntityContext>();
             context.Setup(ctx => ctx.OperationName).Returns("Add");
 
-            var method = DurableEntityContext.FindMethodForContext<CounterImplicit>(context.Object);
+            var method = TypedInvocationExtensions.FindMethodForContext<CounterImplicit>(context.Object);
 
             Assert.NotNull(method);
         }
@@ -56,7 +58,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask.Tests.V2
             var context = new Mock<IDurableEntityContext>();
             context.Setup(ctx => ctx.OperationName).Returns("Add");
 
-            var method = DurableEntityContext.FindMethodForContext<CounterExplicit>(context.Object);
+            var method = TypedInvocationExtensions.FindMethodForContext<CounterExplicit>(context.Object);
 
             Assert.NotNull(method);
         }

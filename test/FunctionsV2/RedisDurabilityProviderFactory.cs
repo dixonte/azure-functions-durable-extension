@@ -31,8 +31,6 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask
 
         public bool SupportsEntities => false;
 
-        public string Name => "Redis";
-
         public DurabilityProvider GetDurabilityProvider(DurableClientAttribute attribute)
         {
             if (string.IsNullOrEmpty(attribute.TaskHub) && string.IsNullOrEmpty(attribute.ConnectionName))

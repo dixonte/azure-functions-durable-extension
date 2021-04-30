@@ -22,6 +22,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask.Analyzers
 
         public static void ReportProblems(
             CompilationAnalysisContext context,
+            SemanticModel semanticModel,
             IEnumerable<ActivityFunctionDefinition> functionDefinitions,
             IEnumerable<ActivityFunctionCall> functionInvocations)
         {

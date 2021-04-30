@@ -89,11 +89,6 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask
             }
 
             JToken jToken = this.GetInputAsJson();
-            if (jToken == null)
-            {
-                return null;
-            }
-
             var value = jToken as JValue;
             if (value != null)
             {

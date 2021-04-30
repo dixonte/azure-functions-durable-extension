@@ -7,7 +7,7 @@ jobs:
     variables:
       solution: 'WebJobs.Extensions.DurableTask.sln'
       buildPlatform: 'Any CPU'
-      buildConfiguration: 'Release'
+      buildConfiguration: 'Debug'
 
     steps:
     - task: NuGetToolInstaller@1
@@ -15,16 +15,15 @@ jobs:
     - task: DotNetCoreCLI@2
       inputs:
         command: 'restore'
-        projects: 'test/FunctionsV1/*.csproj'
+        projects: '**/**/*.csproj'
         feedsToUse: 'config'
         nugetConfigPath: '.nuget/nuget.config'
 
-    - task: DotNetCoreCLI@2
+    - task: VSBuild@1
       inputs:
-        command: 'build'
-        projects: 'test/FunctionsV1/*.csproj'
-        arguments: '--configuration $(buildConfiguration)'
-      displayName: 'dotnet build $(buildConfiguration) '
+        solution: '$(solution)'
+        platform: '$(buildPlatform)'
+        configuration: '$(buildConfiguration)'
 
     - task: VSTest@2
       inputs:
@@ -38,7 +37,6 @@ jobs:
         rerunMaxAttempts: 2
       env:
         AzureWebJobsStorage: $(AzureWebJobsStorage)
-        APPINSIGHTS_INSTRUMENTATIONKEY: $(APPINSIGHTS_INSTRUMENTATIONKEY) 
 
   - job: FunctionsV2Tests
     pool: 
@@ -50,7 +48,7 @@ jobs:
     variables:
       solution: 'WebJobs.Extensions.DurableTask.sln'
       buildPlatform: 'Any CPU'
-      buildConfiguration: 'Release'
+      buildConfiguration: 'Debug'
 
     steps:
     - task: NuGetToolInstaller@1
@@ -58,31 +56,28 @@ jobs:
     - task: DotNetCoreCLI@2
       inputs:
         command: 'restore'
-        projects: 'test/FunctionsV2/*.csproj'
+        projects: '**/**/*.csproj'
         feedsToUse: 'config'
         nugetConfigPath: '.nuget/nuget.config'
 
-    - task: DotNetCoreCLI@2
+    - task: VSBuild@1
       inputs:
-        command: 'build'
-        projects: 'test/FunctionsV2/*.csproj'
-        arguments: '--configuration $(buildConfiguration)'
-      displayName: 'dotnet build $(buildConfiguration)'
+        solution: '$(solution)'
+        platform: '$(buildPlatform)'
+        configuration: '$(buildConfiguration)'
 
     - task: VSTest@2
       inputs:
         testSelector: 'testAssemblies'
         testAssemblyVer2: |
-          **/bin/**/*tests.v2.dll
+          **/*tests.v2.dll
         distributionBatchType: basedOnExecutionTime
         diagnosticsEnabled: true
         rerunFailedTests: true
         rerunFailedThreshold: 10
         rerunMaxAttempts: 2
-        runInParallel: true
       env:
         AzureWebJobsStorage: $(AzureWebJobsStorage)
-        APPINSIGHTS_INSTRUMENTATIONKEY: $(APPINSIGHTS_INSTRUMENTATIONKEY) 
 
   - job: DurableAnalyzerTests
     pool: 
@@ -91,7 +86,7 @@ jobs:
     variables:
       solution: '**/WebJobs.Extensions.DurableTask.Analyzers.sln'
       buildPlatform: 'Any CPU'
-      buildConfiguration: 'Release'
+      buildConfiguration: 'Debug'
 
     steps:
     - task: NuGetToolInstaller@1
@@ -99,22 +94,21 @@ jobs:
     - task: DotNetCoreCLI@2
       inputs:
         command: 'restore'
-        projects: 'test/WebJobs.Extensions.DurableTask.Analyzers.Test/*.csproj'
+        projects: '**/**/*.csproj'
         feedsToUse: 'config'
         nugetConfigPath: '.nuget/nuget.config'
 
-    - task: DotNetCoreCLI@2
+    - task: VSBuild@1
       inputs:
-        command: 'build'
-        projects: 'test/WebJobs.Extensions.DurableTask.Analyzers.Test/*.csproj'
-        arguments: '--configuration $(buildConfiguration)'
-      displayName: 'dotnet build $(buildConfiguration) '
+        solution: '$(solution)'
+        platform: '$(buildPlatform)'
+        configuration: '$(buildConfiguration)'
 
     - task: VSTest@2
       inputs:
         testSelector: 'testAssemblies'
         testAssemblyVer2: |
-           **/bin/**/*Analyzers.Test.dll
+          **/*Analyzers.Test.dll
         distributionBatchType: basedOnExecutionTime
         diagnosticsEnabled: true
         rerunFailedTests: true
@@ -122,4 +116,36 @@ jobs:
         rerunMaxAttempts: 2
       env:
         AzureWebJobsStorage: $(AzureWebJobsStorage)
-        APPINSIGHTS_INSTRUMENTATIONKEY: $(APPINSIGHTS_INSTRUMENTATIONKEY)
+    
+  - job: PublishPipelineArtifact
+    dependsOn:
+      - FunctionsV1Tests
+      - FunctionsV2Tests
+      - DurableAnalyzerTests
+
+    pool: 
+      vmImage: 'windows-latest'
+
+    variables:
+      solution: 'WebJobs.Extensions.DurableTask.sln'
+      buildPlatform: 'Any CPU'
+      buildConfiguration: 'Debug'
+
+    steps:
+    - task: NuGetToolInstaller@1
+
+    - task: DotNetCoreCLI@2
+      inputs:
+        command: 'restore'
+        projects: '**/**/*.csproj'
+        feedsToUse: 'config'
+        nugetConfigPath: '.nuget/nuget.config'
+
+    - task: VSBuild@1
+      inputs:
+        solution: '$(solution)'
+        platform: '$(buildPlatform)'
+        configuration: '$(buildConfiguration)'
+
+    - publish: 'src/WebJobs.Extensions.DurableTask/bin'
+      artifact: bin

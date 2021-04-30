@@ -378,7 +378,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask.Tests
         {
             string message = ctx.GetInput<string>();
 
-            RetryOptions options = new RetryOptions(TimeSpan.FromSeconds(2), 3);
+            RetryOptions options = new RetryOptions(TimeSpan.FromSeconds(5), 3);
 
             // Specify an explicit sub-orchestration ID that can be queried by the test driver.
             Guid subInstanceId = await ctx.CallActivityAsync<Guid>(nameof(TestActivities.NewGuid), null);
@@ -411,7 +411,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask.Tests
                 throw new ArgumentNullException(nameof(message));
             }
 
-            RetryOptions options = new RetryOptions(TimeSpan.FromSeconds(1), 3);
+            RetryOptions options = new RetryOptions(TimeSpan.FromSeconds(5), 3);
 
             // This throw happens in the implementation of an activity.
             await ctx.CallActivityWithRetryAsync(nameof(TestActivities.ThrowActivity), options, message);
@@ -529,8 +529,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask.Tests
                 headers: testHeaders,
                 content: testRequest.Content,
                 tokenSource: testRequest.TokenSource,
-                asynchronousPatternEnabled: testRequest.AsynchronousPatternEnabled,
-                timeout: testRequest.Timeout);
+                asynchronousPatternEnabled: testRequest.AsynchronousPatternEnabled);
 
             return durableHttpRequest;
         }
@@ -917,16 +916,11 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask.Tests
                 ctx.SignalEntity(entityId, "Set", 56);
                 ctx.SignalEntity(entityId, "SetToUnDeserializable");
                 ctx.SignalEntity(entityId, "Set", 12);
-                ctx.SignalEntity(entityId, "SetThenThrow", 999);
+                ctx.SignalEntity(entityId, "SetAndThrow", 999);
 
                 if (rollbackOnException)
                 {
-                    // we rolled back to an un-deserializable state
                     await Assert.ThrowsAsync<EntitySchedulerException>(() => entity.Get());
-                }
-                else
-                {
-                    Assert.Equal(999, await entity.Get());
                 }
 
                 await ctx.CallEntityAsync<bool>(entityId, "deletewithoutreading");

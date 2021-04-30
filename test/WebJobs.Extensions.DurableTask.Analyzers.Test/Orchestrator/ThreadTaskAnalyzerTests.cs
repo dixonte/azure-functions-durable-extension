@@ -50,7 +50,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask.Analyzers.Test.Orchestr
     {
         public static class HelloSequence
         {
-            [FunctionName(""ThreadTaskAnalyzerTestCases"")]
+            [FunctionName(""hreadTaskAnalyzerTestCases"")]
             public static async Task Run(
             " + allTests;
 
@@ -70,7 +70,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask.Analyzers.Test.Orchestr
     {
         public static class HelloSequence
         {
-            [FunctionName(""ThreadTaskAnalyzerTestCases"")]
+            [FunctionName(""hreadTaskAnalyzerTestCases"")]
             public static async Task Run(
             [OrchestrationTrigger] IDurableOrchestrationContext context)
             {
@@ -105,7 +105,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask.Analyzers.Test.Orchestr
     {
         public static class HelloSequence
         {
-            [FunctionName(""ThreadTaskAnalyzerTestCases"")]
+            [FunctionName(""hreadTaskAnalyzerTestCases"")]
             public static async Task Run(
             [OrchestrationTrigger] IDurableOrchestrationContext context)
             {
@@ -140,7 +140,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask.Analyzers.Test.Orchestr
     {
         public static class HelloSequence
         {
-            [FunctionName(""ThreadTaskAnalyzerTestCases"")]
+            [FunctionName(""hreadTaskAnalyzerTestCases"")]
             public static async Task Run(
             [OrchestrationTrigger] IDurableOrchestrationContext context)
             {
@@ -175,7 +175,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask.Analyzers.Test.Orchestr
     {
         public static class HelloSequence
         {
-            [FunctionName(""ThreadTaskAnalyzerTestCases"")]
+            [FunctionName(""hreadTaskAnalyzerTestCases"")]
             public static async Task Run(
             [OrchestrationTrigger] IDurableOrchestrationContext context)
             {
@@ -210,7 +210,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask.Analyzers.Test.Orchestr
     {
         public static class HelloSequence
         {
-            [FunctionName(""ThreadTaskAnalyzerTestCases"")]
+            [FunctionName(""hreadTaskAnalyzerTestCases"")]
             public static async Task Run(
             [OrchestrationTrigger] IDurableOrchestrationContext context)
             {
@@ -222,7 +222,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask.Analyzers.Test.Orchestr
             var expectedDiagnostics = new DiagnosticResult
             {
                 Id = DiagnosticId,
-                Message = string.Format(Resources.DeterministicAnalyzerMessageFormat, "Thread.Start"),
+                Message = string.Format(Resources.DeterministicAnalyzerMessageFormat, "t.Start"),
                 Severity = Severity,
                 Locations =
                     new[] {
@@ -246,7 +246,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask.Analyzers.Test.Orchestr
     {
         public static class HelloSequence
         {
-            [FunctionName(""ThreadTaskAnalyzerTestCases"")]
+            [FunctionName(""hreadTaskAnalyzerTestCases"")]
             public static async Task Run(
             [OrchestrationTrigger] IDurableOrchestrationContext context)
             {
@@ -258,7 +258,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask.Analyzers.Test.Orchestr
             var expectedDiagnostics = new DiagnosticResult
             {
                 Id = DiagnosticId,
-                Message = string.Format(Resources.DeterministicAnalyzerMessageFormat, "Thread.Start"),
+                Message = string.Format(Resources.DeterministicAnalyzerMessageFormat, "t.Start"),
                 Severity = Severity,
                 Locations =
                     new[] {
@@ -282,7 +282,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask.Analyzers.Test.Orchestr
     {
         public static class HelloSequence
         {
-            [FunctionName(""ThreadTaskAnalyzerTestCases"")]
+            [FunctionName(""hreadTaskAnalyzerTestCases"")]
             public static async Task Run(
             [OrchestrationTrigger] IDurableOrchestrationContext context)
             {
@@ -294,7 +294,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask.Analyzers.Test.Orchestr
             var expectedDiagnostics = new DiagnosticResult
             {
                 Id = DiagnosticId,
-                Message = string.Format(Resources.DeterministicAnalyzerMessageFormat, "Task.ContinueWith"),
+                Message = string.Format(Resources.DeterministicAnalyzerMessageFormat, "task.ContinueWith"),
                 Severity = Severity,
                 Locations =
                     new[] {
@@ -318,7 +318,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask.Analyzers.Test.Orchestr
     {
         public static class HelloSequence
         {
-            [FunctionName(""ThreadTaskAnalyzerTestCases"")]
+            [FunctionName(""hreadTaskAnalyzerTestCases"")]
             public static async Task Run(
             [OrchestrationTrigger] IDurableOrchestrationContext context)
             {
@@ -330,50 +330,11 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask.Analyzers.Test.Orchestr
             var expectedDiagnostics = new DiagnosticResult
             {
                 Id = DiagnosticId,
-                Message = string.Format(Resources.DeterministicAnalyzerMessageFormat, "Task.ContinueWith"),
+                Message = string.Format(Resources.DeterministicAnalyzerMessageFormat, "task.ContinueWith"),
                 Severity = Severity,
                 Locations =
                     new[] {
                             new DiagnosticResultLocation("Test0.cs", 16, 17)
-                        }
-            };
-
-            VerifyCSharpDiagnostic(test, expectedDiagnostics);
-        }
-
-        [TestMethod]
-        public void Task_ContinueWith_OnGenericTask()
-        {
-            var test = @"
-    using System.Threading;
-    using System.Threading.Tasks;
-    using Microsoft.Azure.WebJobs;
-    using Microsoft.Azure.WebJobs.Extensions.DurableTask;
-
-    namespace VSSample
-    {
-        public static class HelloSequence
-        {
-            [FunctionName(""ThreadTaskAnalyzerTestCases"")]
-            public static async Task Run(
-            [OrchestrationTrigger] IDurableOrchestrationContext context)
-            {
-                var retryOptions = new RetryOptions(new TimeSpan(), 2);
-
-            context.CallActivityWithRetryAsync(""HelloWorld"", retryOptions, ""Hello"").ContinueWith(i =>
-                        context.SetCustomStatus(
-                            $""Retrieved name""));
-        }
-        }
-    }";
-            var expectedDiagnostics = new DiagnosticResult
-            {
-                Id = DiagnosticId,
-                Message = string.Format(Resources.DeterministicAnalyzerMessageFormat, "Task.ContinueWith"),
-                Severity = Severity,
-                Locations =
-                    new[] {
-                            new DiagnosticResultLocation("Test0.cs", 17, 13)
                         }
             };
 
@@ -393,7 +354,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask.Analyzers.Test.Orchestr
     {
         public static class HelloSequence
         {
-            [FunctionName(""ThreadTaskAnalyzerTestCases"")]
+            [FunctionName(""hreadTaskAnalyzerTestCases"")]
             public static async Task Run(
             [OrchestrationTrigger] IDurableOrchestrationContext context)
             {
@@ -419,7 +380,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask.Analyzers.Test.Orchestr
     {
         public static class HelloSequence
         {
-            [FunctionName(""ThreadTaskAnalyzerTestCases"")]
+            [FunctionName(""hreadTaskAnalyzerTestCases"")]
             public static async Task Run(
             [OrchestrationTrigger] IDurableOrchestrationContext context)
             {
@@ -434,7 +395,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask.Analyzers.Test.Orchestr
             var expectedDiagnostics = new DiagnosticResult[9];
             expectedDiagnostics[0] = new DiagnosticResult
             {
-                Id = MethodInvocationAnalyzer.DiagnosticId,
+                Id = MethodAnalyzer.DiagnosticId,
                 Message = string.Format(Resources.MethodAnalyzerMessageFormat, "DirectCall()"),
                 Severity = Severity,
                 Locations =
@@ -490,7 +451,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask.Analyzers.Test.Orchestr
             expectedDiagnostics[5] = new DiagnosticResult
             {
                 Id = DiagnosticId,
-                Message = string.Format(Resources.DeterministicAnalyzerMessageFormat, "Thread.Start"),
+                Message = string.Format(Resources.DeterministicAnalyzerMessageFormat, "t.Start"),
                 Severity = Severity,
                 Locations =
                     new[] {
@@ -501,7 +462,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask.Analyzers.Test.Orchestr
             expectedDiagnostics[6] = new DiagnosticResult
             {
                 Id = DiagnosticId,
-                Message = string.Format(Resources.DeterministicAnalyzerMessageFormat, "Thread.Start"),
+                Message = string.Format(Resources.DeterministicAnalyzerMessageFormat, "t2.Start"),
                 Severity = Severity,
                 Locations =
                     new[] {
@@ -512,7 +473,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask.Analyzers.Test.Orchestr
             expectedDiagnostics[7] = new DiagnosticResult
             {
                 Id = DiagnosticId,
-                Message = string.Format(Resources.DeterministicAnalyzerMessageFormat, "Task.ContinueWith"),
+                Message = string.Format(Resources.DeterministicAnalyzerMessageFormat, "task.ContinueWith"),
                 Severity = Severity,
                 Locations =
                     new[] {
@@ -523,7 +484,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask.Analyzers.Test.Orchestr
             expectedDiagnostics[8] = new DiagnosticResult
             {
                 Id = DiagnosticId,
-                Message = string.Format(Resources.DeterministicAnalyzerMessageFormat, "Task.ContinueWith"),
+                Message = string.Format(Resources.DeterministicAnalyzerMessageFormat, "task2.ContinueWith"),
                 Severity = Severity,
                 Locations =
                     new[] {
@@ -536,7 +497,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask.Analyzers.Test.Orchestr
 
         protected override DiagnosticAnalyzer GetCSharpDiagnosticAnalyzer()
         {
-            return new DeterministicMethodAnalyzer();
+            return new OrchestratorAnalyzer();
         }
     }
 }

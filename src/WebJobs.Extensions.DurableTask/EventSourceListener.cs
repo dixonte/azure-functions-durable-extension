@@ -15,8 +15,6 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask
     {
         private readonly LinuxAppServiceLogger logger;
         private readonly bool disableVerbose;
-        private readonly string durabilityProviderEventSourceName;
-        private EndToEndTraceHelper traceHelper;
 
         /// <summary>
         /// Create an EventSourceListener to capture and log Durable EventSource
@@ -24,14 +22,10 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask
         /// </summary>
         /// <param name="logger">A LinuxAppService logger configured for the current linux host.</param>
         /// <param name="enableVerbose">If true, durableTask.Core verbose logs are enabled. The opposite if false.</param>
-        /// <param name="traceHelper">A tracing client to log exceptions.</param>
-        /// <param name="durabilityProviderEventSourceName">The durability provider's event source name.</param>
-        public EventSourceListener(LinuxAppServiceLogger logger, bool enableVerbose, EndToEndTraceHelper traceHelper, string durabilityProviderEventSourceName)
+        public EventSourceListener(LinuxAppServiceLogger logger, bool enableVerbose)
         {
             this.logger = logger;
-            this.disableVerbose = !enableVerbose; // We track the opposite value ro simplify logic later
-            this.traceHelper = traceHelper;
-            this.durabilityProviderEventSourceName = durabilityProviderEventSourceName;
+            this.disableVerbose = !enableVerbose; // We set the opposite to simply logic later
         }
 
         /// <summary>
@@ -46,8 +40,9 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask
             // so we provide extra logic to ignore it.
             if ((eventSource.Name == "DurableTask-Core"
                   && eventSource.Guid != new Guid("7DA4779A-152E-44A2-A6F2-F80D991A5BEE")) ||
+                eventSource.Name == "DurableTask-AzureStorage" ||
                 eventSource.Name == "WebJobs-Extensions-DurableTask" ||
-                eventSource.Name == this.durabilityProviderEventSourceName)
+                eventSource.Name == "DurableTask-SqlServer")
             {
                 this.EnableEvents(eventSource, EventLevel.LogAlways, EventKeywords.All);
             }
@@ -65,19 +60,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask
                && eventData.EventSource.Name == "DurableTask-Core"
                && eventData.Level == EventLevel.Verbose))
             {
-                try
-                {
-                    this.logger.Log(eventData);
-                }
-                catch (Exception)
-                {
-                    this.traceHelper.ExtensionWarningEvent(
-                        hubName: string.Empty,
-                        instanceId: string.Empty,
-                        functionName: string.Empty,
-                        message: $"The Linux Logger failed to log, logs might be lost.");
-                    throw;
-                }
+                this.logger.Log(eventData);
             }
         }
     }

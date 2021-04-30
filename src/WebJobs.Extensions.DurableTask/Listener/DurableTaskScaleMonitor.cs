@@ -12,7 +12,6 @@ using System.Threading.Tasks;
 using DurableTask.AzureStorage.Monitoring;
 using Dynamitey.DynamicObjects;
 using Microsoft.Azure.WebJobs.Host.Scale;
-using Microsoft.Extensions.Logging;
 using Microsoft.WindowsAzure.Storage;
 using Newtonsoft.Json;
 
@@ -21,28 +20,28 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask
     internal sealed class DurableTaskScaleMonitor : IScaleMonitor<DurableTaskTriggerMetrics>
     {
         private readonly string functionId;
-        private readonly string functionName;
+        private readonly FunctionName functionName;
         private readonly string hubName;
         private readonly string storageConnectionString;
+        private readonly EndToEndTraceHelper traceHelper;
         private readonly ScaleMonitorDescriptor scaleMonitorDescriptor;
-        private readonly ILogger logger;
 
         private DisconnectedPerformanceMonitor performanceMonitor;
 
         public DurableTaskScaleMonitor(
             string functionId,
-            string functionName,
+            FunctionName functionName,
             string hubName,
             string storageConnectionString,
-            ILogger logger,
+            EndToEndTraceHelper traceHelper,
             DisconnectedPerformanceMonitor performanceMonitor = null)
         {
             this.functionId = functionId;
             this.functionName = functionName;
             this.hubName = hubName;
             this.storageConnectionString = storageConnectionString;
-            this.logger = logger;
             this.performanceMonitor = performanceMonitor;
+            this.traceHelper = traceHelper;
             this.scaleMonitorDescriptor = new ScaleMonitorDescriptor($"{this.functionId}-DurableTaskTrigger-{this.hubName}".ToLower());
         }
 
@@ -87,7 +86,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask
             }
             catch (StorageException e)
             {
-                this.logger.LogWarning("{details}. Function: {functionName}. HubName: {hubName}.", e.ToString(), this.functionName, this.hubName);
+                this.traceHelper.ExtensionWarningEvent(this.hubName, this.functionName.Name, string.Empty, e.ToString());
             }
 
             if (heartbeat != null)
@@ -174,13 +173,12 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask
                     break;
             }
 
-            if (writeToUserLogs)
-            {
-                this.logger.LogInformation(
-                    $"Durable Functions Trigger Scale Decision: {scaleStatus.Vote.ToString()}, Reason: {scaleRecommendation?.Reason}",
-                    this.hubName,
-                    this.functionName);
-            }
+            this.traceHelper.ExtensionInformationalEvent(
+                                    this.hubName,
+                                    string.Empty,
+                                    this.functionName.Name,
+                                    $"Durable Functions Trigger Scale Decision: {scaleStatus.Vote.ToString()}, Reason: {scaleRecommendation?.Reason}",
+                                    writeToUserLogs: writeToUserLogs);
 
             return scaleStatus;
         }

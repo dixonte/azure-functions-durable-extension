@@ -11,7 +11,6 @@ using System.Threading.Tasks;
 using Microsoft.Azure.WebJobs.Host;
 using Microsoft.Azure.WebJobs.Host.TestCommon;
 using Microsoft.Extensions.Primitives;
-using Microsoft.VisualBasic;
 using Moq;
 using Newtonsoft.Json.Linq;
 using Xunit;
@@ -345,12 +344,19 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask.Tests
             {
                 await host.StartAsync();
 
-                // Validate if we opened local RPC endpoint by looking at log statements.
-                var logger = this.loggerProvider.CreatedLoggers.Single(l => l.Category == TestHelpers.LogCategory);
-                var logMessages = logger.LogMessages.ToList();
-                bool enabledRpcEndpoint = logMessages.Any(msg => msg.Level == Microsoft.Extensions.Logging.LogLevel.Information && msg.FormattedMessage.StartsWith("Opened local RPC endpoint:"));
+                // Check to see whether the local RPC endpoint has been opened
+                IPGlobalProperties ipGlobalProperties = IPGlobalProperties.GetIPGlobalProperties();
+                IPEndPoint[] endpoints = ipGlobalProperties.GetActiveTcpListeners();
 
-                Assert.Equal(enabledExpected, enabledRpcEndpoint);
+                const string LocalRcpAddress = "127.0.0.1:17071";
+                if (enabledExpected)
+                {
+                    Assert.Contains(LocalRcpAddress, endpoints.Select(ep => ep.ToString()));
+                }
+                else
+                {
+                    Assert.DoesNotContain(LocalRcpAddress, endpoints.Select(ep => ep.ToString()));
+                }
 
                 await host.StopAsync();
             }
