@@ -299,7 +299,8 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask
                 method: HttpMethod.Get,
                 uri: new Uri(locationUri),
                 headers: durableHttpRequest.Headers,
-                tokenSource: durableHttpRequest.TokenSource);
+                tokenSource: durableHttpRequest.TokenSource,
+                timeout: durableHttpRequest.Timeout);
 
             // Do not copy over the x-functions-key header, as in many cases, the
             // functions key used for the initial request will be a Function-level key
@@ -480,6 +481,10 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask
         /// <inheritdoc/>
         string IDurableOrchestrationContext.StartNewOrchestration(string functionName, object input, string instanceId)
         {
+            // correlation
+#if NETSTANDARD2_0
+            var context = CorrelationTraceContext.Current;
+#endif
             this.ThrowIfInvalidAccess();
             var actualInstanceId = string.IsNullOrEmpty(instanceId) ? this.NewGuid().ToString() : instanceId;
             var alreadyCompletedTask = this.CallDurableTaskFunctionAsync<string>(functionName, FunctionType.Orchestrator, true, actualInstanceId, null, null, input, null);
@@ -683,6 +688,19 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask
             }
             catch (TaskFailedException e)
             {
+                // Check to see if CallHttpAsync() threw a TimeoutException
+                // In this case, we want to throw a TimeoutException instead of a FunctionFailedException
+                if (functionName.Equals(HttpOptions.HttpTaskActivityReservedName) &&
+                    (e.InnerException is TimeoutException || e.InnerException is HttpRequestException))
+                {
+                    if (e.InnerException is HttpRequestException)
+                    {
+                        throw new HttpRequestException(e.Message);
+                    }
+
+                    throw e.InnerException;
+                }
+
                 exception = e;
                 string message = string.Format(
                     "The {0} function '{1}' failed: \"{2}\". See the function execution logs for additional details.",
@@ -1117,7 +1135,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask
                         requestMessage,
                         target.InstanceId,
                         this.InnerContext.CurrentUtcDateTime,
-                        TimeSpan.FromMinutes(this.Config.Options.EntityMessageReorderWindowInMinutes));
+                        this.Config.MessageReorderWindow);
 
                     eventName = EntityMessageEventNames.RequestMessageEventName;
                 }

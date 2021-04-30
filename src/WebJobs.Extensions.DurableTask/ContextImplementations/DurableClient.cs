@@ -83,6 +83,12 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask
 
         string IDurableEntityClient.TaskHubName => this.TaskHubName;
 
+        /// <inheritdoc/>
+        public override string ToString()
+        {
+            return $"DurableClient[backend={this.config.GetBackendInfo()}]";
+        }
+
         /// <inheritdoc />
         HttpResponseMessage IDurableOrchestrationClient.CreateCheckStatusResponse(HttpRequestMessage request, string instanceId, bool returnInternalServerErrorOnFailure)
         {
@@ -126,7 +132,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask
         /// <inheritdoc />
         async Task<string> IDurableOrchestrationClient.StartNewAsync<T>(string orchestratorFunctionName, string instanceId, T input)
         {
-            if (!this.attribute.ExternalClient && this.ClientReferencesCurrentApp(this))
+            if (this.ClientReferencesCurrentApp(this))
             {
                 this.config.ThrowIfFunctionDoesNotExist(orchestratorFunctionName, FunctionType.Orchestrator);
             }
@@ -291,6 +297,11 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask
                 throw new ArgumentNullException(nameof(operationName));
             }
 
+            if (scheduledTimeUtc.HasValue)
+            {
+                scheduledTimeUtc = scheduledTimeUtc.Value.ToUniversalTime();
+            }
+
             if (this.ClientReferencesCurrentApp(durableClient))
             {
                 this.config.ThrowIfFunctionDoesNotExist(entityId.EntityName, FunctionType.Entity);
@@ -330,7 +341,9 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask
 
         private bool ClientReferencesCurrentApp(DurableClient client)
         {
-            return this.TaskHubMatchesCurrentApp(client) && this.ConnectionNameMatchesCurrentApp(client);
+            return !client.attribute.ExternalClient &&
+                this.TaskHubMatchesCurrentApp(client) &&
+                this.ConnectionNameMatchesCurrentApp(client);
         }
 
         private bool TaskHubMatchesCurrentApp(DurableClient client)
@@ -364,8 +377,8 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask
                     hubName: this.TaskHubName,
                     functionName: state.Name,
                     instanceId: instanceId,
-                    message: $"Cannot terminate orchestration instance in {state.Status} state");
-                throw new InvalidOperationException($"Cannot terminate the orchestration instance {instanceId} because instance is in {state.Status} state");
+                    message: $"Cannot terminate orchestration instance in the {state.OrchestrationStatus} state.");
+                throw new InvalidOperationException($"Cannot terminate the orchestration instance {instanceId} because instance is in the {state.OrchestrationStatus} state.");
             }
         }
 
@@ -542,10 +555,14 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask
                          tasks.Add(CheckForOrphanedLockAndFixIt(state, status.LockedBy));
                     }
 
-                    if (removeEmptyEntities && !status.EntityExists && status.LockedBy == null && status.QueueSize == 0
-                        && now - state.LastUpdatedTime > TimeSpan.FromMinutes(this.config.Options.EntityMessageReorderWindowInMinutes))
+                    if (removeEmptyEntities)
                     {
-                        tasks.Add(DeleteIdleOrchestrationEntity(state));
+                        bool isEmptyEntity = !status.EntityExists && status.LockedBy == null && status.QueueSize == 0;
+                        bool safeToRemoveWithoutBreakingMessageSorterLogic = now - state.LastUpdatedTime > this.config.MessageReorderWindow;
+                        if (isEmptyEntity && safeToRemoveWithoutBreakingMessageSorterLogic)
+                        {
+                            tasks.Add(DeleteIdleOrchestrationEntity(state));
+                        }
                     }
                 }
 
@@ -652,6 +669,11 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask
             string taskHubName,
             string connectionName)
         {
+            if (this.httpApiHandler == null)
+            {
+                throw new InvalidOperationException("IDurableClient.CreateHttpManagementPayload is not supported for IDurableClient instances created outside of a Durable Functions application.");
+            }
+
             return this.httpApiHandler.CreateHttpManagementPayload(instanceId, taskHubName, connectionName);
         }
 
@@ -810,6 +832,11 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask
             DurableClientAttribute attribute,
             bool returnInternalServerErrorOnFailure = false)
         {
+            if (this.httpApiHandler == null)
+            {
+                throw new InvalidOperationException("IDurableClient.CreateCheckStatusResponse is not supported for IDurableClient instances created outside of a Durable Functions application.");
+            }
+
             return this.httpApiHandler.CreateCheckStatusResponse(request, instanceId, attribute, returnInternalServerErrorOnFailure);
         }
 
@@ -889,6 +916,19 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask
         Task<string> IDurableOrchestrationClient.StartNewAsync<T>(string orchestratorFunctionName, T input)
         {
             return ((IDurableOrchestrationClient)this).StartNewAsync<T>(orchestratorFunctionName, string.Empty, input);
+        }
+
+        async Task<string> IDurableOrchestrationClient.RestartAsync(string instanceId, bool restartWithNewInstanceId)
+        {
+            DurableOrchestrationStatus status = await ((IDurableOrchestrationClient)this).GetStatusAsync(instanceId, showHistory: false, showHistoryOutput: false, showInput: true);
+
+            if (status == null)
+            {
+                throw new ArgumentException($"An orchestrastion with the instanceId {instanceId} was not found.");
+            }
+
+            return restartWithNewInstanceId ? await ((IDurableOrchestrationClient)this).StartNewAsync(orchestratorFunctionName: status.Name, status.Input)
+                : await ((IDurableOrchestrationClient)this).StartNewAsync(orchestratorFunctionName: status.Name, instanceId: status.InstanceId, status.Input);
         }
 
         /// <inheritdoc/>

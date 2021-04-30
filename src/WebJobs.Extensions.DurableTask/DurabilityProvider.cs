@@ -6,8 +6,12 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using DurableTask.Core;
+using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+#if !FUNCTIONS_V1
+using Microsoft.Azure.WebJobs.Host.Scale;
+#endif
 
 namespace Microsoft.Azure.WebJobs.Extensions.DurableTask
 {
@@ -58,6 +62,16 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask
         public virtual bool SupportsEntities => false;
 
         /// <summary>
+        /// Specifies whether the backend's WaitForOrchestration is implemented without polling.
+        /// </summary>
+        public virtual bool SupportsPollFreeWait => false;
+
+        /// <summary>
+        /// Specifies whether this backend delivers messages in order.
+        /// </summary>
+        public virtual bool GuaranteesOrderedDelivery => false;
+
+        /// <summary>
         /// JSON representation of configuration to emit in telemetry.
         /// </summary>
         public virtual JObject ConfigurationJson => EmptyConfig;
@@ -71,6 +85,11 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask
         /// Interval time used for long running timers.
         /// </summary>
         public virtual TimeSpan LongRunningTimerIntervalLength { get; set; }
+
+        /// <summary>
+        /// Event source name (e.g. DurableTask-AzureStorage).
+        /// </summary>
+        public virtual string EventSourceName { get; set; }
 
         /// <inheritdoc/>
         public int TaskOrchestrationDispatcherCount => this.GetOrchestrationService().TaskOrchestrationDispatcherCount;
@@ -86,6 +105,11 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask
 
         /// <inheritdoc/>
         public int MaxConcurrentTaskActivityWorkItems => this.GetOrchestrationService().MaxConcurrentTaskActivityWorkItems;
+
+        internal string GetBackendInfo()
+        {
+            return this.GetOrchestrationService().ToString();
+        }
 
         private IOrchestrationService GetOrchestrationService()
         {
@@ -278,7 +302,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask
         /// <returns>Returns a task which completes when the state has been fetched.</returns>
         public virtual Task<IList<OrchestrationState>> GetOrchestrationStateWithInputsAsync(string instanceId, bool showInput = true)
         {
-            throw this.GetNotImplementedException(nameof(this.GetOrchestrationStateAsync));
+            throw this.GetNotImplementedException(nameof(this.GetOrchestrationStateWithInputsAsync));
         }
 
         /// <summary>
@@ -418,5 +442,27 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask
         {
             return this.ConnectionName.Equals(durabilityProvider.ConnectionName);
         }
+
+#if !FUNCTIONS_V1
+        /// <summary>
+        /// Tries to obtain a scale monitor for autoscaling.
+        /// </summary>
+        /// <param name="functionId">Function id.</param>
+        /// <param name="functionName">Function name.</param>
+        /// <param name="hubName">Task hub name.</param>
+        /// <param name="storageConnectionString">Storage account connection string, used for Azure Storage provider.</param>
+        /// <param name="scaleMonitor">The scale monitor.</param>
+        /// <returns>True if autoscaling is supported, false otherwise.</returns>
+        public virtual bool TryGetScaleMonitor(
+            string functionId,
+            string functionName,
+            string hubName,
+            string storageConnectionString,
+            out IScaleMonitor scaleMonitor)
+        {
+            scaleMonitor = null;
+            return false;
+        }
+#endif
     }
 }
